@@ -1,0 +1,34 @@
+name: Show My Environments
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-to-test:
+    name: Deploy to test
+    runs-on: ubuntu-latest
+    environment: test
+    steps:
+      - name: Show what this environment is configured with
+        env:
+          API_URL: ${{ vars.API_URL }}
+          API_KEY: ${{ secrets.API_KEY }}
+        run: |
+          echo "Environment: test"
+          echo "API address: $API_URL"
+          echo "API key:     $API_KEY"
+
+  deploy-to-production:
+    name: Deploy to production
+    needs: deploy-to-test
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Show what this environment is configured with
+        env:
+          API_URL: ${{ vars.API_URL }}
+          API_KEY: ${{ secrets.API_KEY }}
+        run: |
+          echo "Environment: production"
+          echo "API address: $API_URL"
+          echo "API key:     $API_KEY"
