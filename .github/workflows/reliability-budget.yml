@@ -1,0 +1,55 @@
+name: Reliability Budget
+
+on:
+  workflow_dispatch:
+    inputs:
+      availability:
+        description: "The availability target you would be willing to sign"
+        required: true
+        default: "99.9"
+        type: choice
+        options:
+          - "99.5"
+          - "99.9"
+          - "99.95"
+          - "99.99"
+
+jobs:
+  budget:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Work out what that promise costs
+        env:
+          AVAIL: ${{ github.event.inputs.availability }}
+        run: |
+          python3 - << 'PY'
+          import os
+          a = float(os.environ["AVAIL"])
+          YEAR, MONTH = 365 * 24 * 60, 30 * 24 * 60
+
+          def hm(m):
+              m = round(m)
+              h, mm = divmod(m, 60)
+              return f"{h}h {mm}m" if h else f"{mm}m"
+
+          bad = (100.0 - a) / 100.0
+          year, month = YEAR * bad, MONTH * bad
+          out = "\n".join([
+              f"## Availability target: {a}%",
+              "",
+              "| Question | Answer |",
+              "|---|---|",
+              f"| Unavailability allowed | {bad * 100:.2f}% of the time |",
+              f"| Downtime budget per year | **{hm(year)}** |",
+              f"| Downtime budget per month | **{hm(month)}** |",
+              f"| Bad deployments per month, at 15 minutes each | **{month / 15:.1f}** |",
+              f"| A single 4-hour outage would use | **{240 / month * 100:.0f}%** of a month |",
+              "",
+              "> The budget is spent by outages and by releases alike. Nothing",
+              "> distinguishes downtime you caused from downtime you suffered.",
+              "",
+          ])
+          print(out)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write(out + "\n")
+          PY
